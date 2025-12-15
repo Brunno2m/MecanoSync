@@ -1,6 +1,6 @@
 # MecanoSync 🔧
 
-Sistema de gestão para oficinas mecânicas - Multi-tenant SaaS
+Sistema de gestão para oficinas mecânicas
 
 ## 📋 Pré-requisitos
 
