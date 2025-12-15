@@ -1,0 +1,269 @@
+{% extends 'oficina/base.html' %}
+{% load static %}
+
+{% block title %}Alterar Senha - MecanoSync{% endblock %}
+
+{% block content %}
+<div class="page active" style="padding: 2rem;">
+    <div class="page-header" style="margin-bottom: 2rem;">
+        <h1><i class="fas fa-key"></i> Alterar Senha</h1>
+        <a href="{% url 'perfil' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Voltar ao Perfil
+        </a>
+    </div>
+
+    <div class="senha-container">
+        <div class="card" style="padding: 2.5rem;">
+        <h2><i class="fas fa-lock"></i> Nova Senha</h2>
+        <p style="color: #666; margin-bottom: 2rem;">
+            Por questões de segurança, recomendamos que você use uma senha forte com pelo menos 6 caracteres.
+        </p>
+
+        <form method="post" class="form-alterar-senha">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="senha_atual">
+                    <i class="fas fa-lock"></i> Senha Atual *
+                </label>
+                <input 
+                    type="password" 
+                    id="senha_atual" 
+                    name="senha_atual" 
+                    class="input" 
+                    required
+                    placeholder="Digite sua senha atual"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="nova_senha">
+                    <i class="fas fa-key"></i> Nova Senha *
+                </label>
+                <input 
+                    type="password" 
+                    id="nova_senha" 
+                    name="nova_senha" 
+                    class="input" 
+                    required
+                    minlength="6"
+                    placeholder="Digite sua nova senha (mínimo 6 caracteres)"
+                >
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    A senha deve ter no mínimo 6 caracteres
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmar_senha">
+                    <i class="fas fa-check"></i> Confirmar Nova Senha *
+                </label>
+                <input 
+                    type="password" 
+                    id="confirmar_senha" 
+                    name="confirmar_senha" 
+                    class="input" 
+                    required
+                    minlength="6"
+                    placeholder="Digite novamente sua nova senha"
+                >
+            </div>
+
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                <i class="fas fa-info-circle"></i>
+                <strong>Dica de Segurança:</strong> Use uma combinação de letras maiúsculas, minúsculas, números e símbolos para criar uma senha mais segura.
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Alterar Senha
+                </button>
+                <a href="{% url 'perfil' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Validar senhas iguais antes de enviar
+    const form = document.querySelector('.form-alterar-senha');
+    const novaSenha = document.getElementById('nova_senha');
+    const confirmarSenha = document.getElementById('confirmar_senha');
+
+    form.addEventListener('submit', function(e) {
+        if (novaSenha.value !== confirmarSenha.value) {
+            e.preventDefault();
+            alert('As senhas não coincidem. Por favor, verifique e tente novamente.');
+            confirmarSenha.focus();
+            return false;
+        }
+
+        if (novaSenha.value.length < 6) {
+            e.preventDefault();
+            alert('A senha deve ter no mínimo 6 caracteres.');
+            novaSenha.focus();
+            return false;
+        }
+    });
+
+    // Mostrar força da senha
+    novaSenha.addEventListener('input', function() {
+        const senha = this.value;
+        let forca = 0;
+        
+        if (senha.length >= 6) forca++;
+        if (senha.length >= 10) forca++;
+        if (/[a-z]/.test(senha) && /[A-Z]/.test(senha)) forca++;
+        if (/\d/.test(senha)) forca++;
+        if (/[^a-zA-Z0-9]/.test(senha)) forca++;
+
+        let cor = '#dc3545';
+        let texto = 'Fraca';
+        
+        if (forca >= 3) {
+            cor = '#ffc107';
+            texto = 'Média';
+        }
+        if (forca >= 4) {
+            cor = '#28a745';
+            texto = 'Forte';
+        }
+
+        // Remover indicador anterior se existir
+        let indicador = document.getElementById('forca-senha');
+        if (indicador) {
+            indicador.remove();
+        }
+
+        // Adicionar novo indicador
+        if (senha.length > 0) {
+            const div = document.createElement('div');
+            div.id = 'forca-senha';
+            div.style.cssText = `
+                margin-top: 0.5rem;
+                padding: 0.5rem;
+                border-radius: 4px;
+                background: ${cor}20;
+                color: ${cor};
+                font-size: 0.875rem;
+                font-weight: 500;
+            `;
+            div.innerHTML = `<i class="fas fa-shield-alt"></i> Força da senha: ${texto}`;
+            novaSenha.parentElement.appendChild(div);
+        }
+    });
+</script>
+
+<style>
+    .senha-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
+    }
+
+    .card h2 {
+        margin: 0 0 1rem 0;
+        color: #2c3e50;
+        font-size: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card > p {
+        color: #6c757d;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .form-alterar-senha {
+        margin-top: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 2rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .form-group label i {
+        margin-right: 0.5rem;
+        color: #0066cc;
+    }
+
+    .input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+
+    .input:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    .form-group small {
+        color: #6c757d;
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2.5rem;
+        padding-top: 2rem;
+        border-top: 2px solid #f8f9fa;
+    }
+
+    .alert-info {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        color: #0c5460;
+        padding: 1.25rem;
+        border-radius: 10px;
+        border-left: 4px solid #17a2b8;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .alert-info i {
+        margin-right: 0.75rem;
+    }
+
+    .page-header h1 {
+        color: #2c3e50;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .btn {
+        padding: 0.875rem 1.75rem;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}

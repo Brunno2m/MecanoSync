@@ -1,0 +1,313 @@
+{% extends 'oficina/base.html' %}
+
+{% block title %}{{ titulo }} - MecanoSync{% endblock %}
+
+{% block content %}
+<div class="page active">
+    <div class="page-header">
+        <h1>{{ titulo }}</h1>
+        <a href="{% if 'cliente' in request.path %}{% url 'clientes_lista' %}{% else %}{% url 'ordens_lista' %}{% endif %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Dados do Cliente -->
+                <h3 style="margin-bottom: 1.5rem; color: #2c3e50; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">
+                    <i class="fas fa-user"></i> Dados do Cliente
+                </h3>
+                <div class="form-grid">
+                    {% for field in form %}
+                    {% if not field.name|slice:":8" == "veiculo_" and field.name != "adicionar_veiculo" %}
+                    <div class="form-group {% if field.name in 'descricao_problema,observacoes' %}full-width{% endif %}">
+                        <label for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if field.field.required %} *{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <span class="error-message">{{ field.errors.0 }}</span>
+                        {% endif %}
+                        {% if field.help_text %}
+                            <small class="help-text">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <!-- Veículos Existentes (apenas na edição) -->
+                {% if veiculos %}
+                <div style="margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: #2c3e50; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">
+                        <i class="fas fa-car"></i> Veículos do Cliente
+                    </h3>
+                    <div style="display: grid; gap: 1rem; margin-bottom: 1.5rem;">
+                        {% for veiculo in veiculos %}
+                        <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <strong style="font-size: 1.1rem; color: #2c3e50;">{{ veiculo.marca }} {{ veiculo.modelo }}</strong>
+                                    <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                                        <span><i class="fas fa-calendar"></i> {{ veiculo.ano }}</span>
+                                        <span style="margin-left: 1rem;"><i class="fas fa-id-card"></i> {{ veiculo.placa }}</span>
+                                        {% if veiculo.cor %}
+                                        <span style="margin-left: 1rem;"><i class="fas fa-palette"></i> {{ veiculo.cor }}</span>
+                                        {% endif %}
+                                        {% if veiculo.km_atual %}
+                                        <span style="margin-left: 1rem;"><i class="fas fa-tachometer-alt"></i> {{ veiculo.km_atual|floatformat:0 }} km</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button type="button" onclick="editarVeiculo({{ veiculo.id }})" class="btn btn-sm btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <button type="button" onclick="excluirVeiculo({{ veiculo.id }}, '{{ veiculo.placa }}')" class="btn btn-sm btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                                        <i class="fas fa-trash"></i> Excluir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Seção de Veículo (Opcional) -->
+                <div style="margin-top: 2rem;">
+                    <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 1rem;">
+                        {{ form.adicionar_veiculo }}
+                        <label for="id_adicionar_veiculo" style="margin: 0; cursor: pointer; font-weight: 600; color: #2c3e50;">
+                            <i class="fas fa-car"></i> {% if veiculos %}Adicionar outro veículo{% else %}Cadastrar veículo do cliente{% endif %}
+                        </label>
+                    </div>
+                    
+                    <div id="veiculo-section" style="display: none;">
+                        <h3 style="margin-bottom: 1.5rem; color: #2c3e50; border-bottom: 2px solid #e9ecef; padding-bottom: 0.5rem;">
+                            <i class="fas fa-car"></i> Dados do Veículo
+                        </h3>
+                        <div class="form-grid">
+                            {% for field in form %}
+                            {% if field.name|slice:":8" == "veiculo_" %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                    {% if field.name in "veiculo_marca,veiculo_modelo,veiculo_ano,veiculo_placa" %}
+                                    <span style="color: red;">*</span>
+                                    {% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <span class="error-message">{{ field.errors.0 }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <a href="{% if 'cliente' in request.path %}{% url 'clientes_lista' %}{% else %}{% url 'ordens_lista' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Editar Veículo -->
+    <div id="modalEditarVeiculo" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0; color: #2c3e50;">
+                    <i class="fas fa-edit"></i> Editar Veículo
+                </h3>
+                <button type="button" onclick="fecharModalEditar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">×</button>
+            </div>
+            <form id="formEditarVeiculo" onsubmit="salvarVeiculo(event)">
+                <input type="hidden" id="edit_veiculo_id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Marca <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_marca" class="input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_modelo" class="input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ano <span style="color: red;">*</span></label>
+                        <input type="number" id="edit_ano" class="input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Placa <span style="color: red;">*</span></label>
+                        <input type="text" id="edit_placa" class="input" maxlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cor</label>
+                        <input type="text" id="edit_cor" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label>KM Atual</label>
+                        <input type="number" id="edit_km" class="input">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" onclick="fecharModalEditar()" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle seção de veículo
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxVeiculo = document.getElementById('id_adicionar_veiculo');
+            const veiculoSection = document.getElementById('veiculo-section');
+            
+            console.log('Checkbox:', checkboxVeiculo);
+            console.log('Section:', veiculoSection);
+            
+            if (checkboxVeiculo && veiculoSection) {
+                // Adicionar evento de mudança
+                checkboxVeiculo.addEventListener('change', function() {
+                    console.log('Checkbox mudou:', this.checked);
+                    if (this.checked) {
+                        veiculoSection.style.display = 'block';
+                    } else {
+                        veiculoSection.style.display = 'none';
+                    }
+                });
+                
+                // Verificar se está marcado ao carregar (em caso de erro de validação)
+                if (checkboxVeiculo.checked) {
+                    veiculoSection.style.display = 'block';
+                }
+            } else {
+                console.error('Elementos não encontrados!');
+            }
+        });
+        
+        // Função para editar veículo
+        function editarVeiculo(veiculoId) {
+            fetch(`/api/obter-veiculo/${veiculoId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('edit_veiculo_id').value = data.veiculo.id;
+                        document.getElementById('edit_marca').value = data.veiculo.marca;
+                        document.getElementById('edit_modelo').value = data.veiculo.modelo;
+                        document.getElementById('edit_ano').value = data.veiculo.ano;
+                        document.getElementById('edit_placa').value = data.veiculo.placa;
+                        document.getElementById('edit_cor').value = data.veiculo.cor || '';
+                        document.getElementById('edit_km').value = data.veiculo.km_atual || '';
+                        
+                        document.getElementById('modalEditarVeiculo').style.display = 'flex';
+                    } else {
+                        alert('Erro ao carregar veículo');
+                    }
+                })
+                .catch(error => {
+                    alert('Erro ao carregar veículo');
+                });
+        }
+        
+        function fecharModalEditar() {
+            document.getElementById('modalEditarVeiculo').style.display = 'none';
+        }
+        
+        function salvarVeiculo(event) {
+            event.preventDefault();
+            
+            const veiculoId = document.getElementById('edit_veiculo_id').value;
+            const formData = new FormData();
+            formData.append('marca', document.getElementById('edit_marca').value);
+            formData.append('modelo', document.getElementById('edit_modelo').value);
+            formData.append('ano', document.getElementById('edit_ano').value);
+            formData.append('placa', document.getElementById('edit_placa').value);
+            formData.append('cor', document.getElementById('edit_cor').value);
+            formData.append('km_atual', document.getElementById('edit_km').value);
+            
+            fetch(`/api/editar-veiculo/${veiculoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erro ao salvar veículo: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Erro ao salvar veículo');
+            });
+        }
+        
+        // Função para excluir veículo
+        function excluirVeiculo(veiculoId, placa) {
+            if (confirm(`Deseja realmente excluir o veículo ${placa}?`)) {
+                fetch(`/api/excluir-veiculo/${veiculoId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erro ao excluir veículo: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Erro ao excluir veículo');
+                });
+            }
+        }
+    </script>
+</div>
+
+<style>
+.error-message {
+    color: var(--danger-color);
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+.help-text {
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
+}
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+.btn-danger {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+</style>
+{% endblock %}

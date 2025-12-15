@@ -1,0 +1,111 @@
+{% extends 'oficina/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - MecanoSync{% endblock %}
+
+{% block content %}
+<div class="page active" id="dashboard">
+    <div class="page-header">
+        <h1>Dashboard</h1>
+        <a href="{% url 'ordem_criar' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Nova Ordem
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-clipboard-check"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Ordens Abertas</h3>
+                <p class="stat-value">{{ ordens_abertas }}</p>
+                <span class="stat-change positive">Ordens em andamento</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Faturamento Mensal</h3>
+                <p class="stat-value">R$ {{ faturamento_mensal|floatformat:2 }}</p>
+                <span class="stat-change positive">Mês atual</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Clientes Ativos</h3>
+                <p class="stat-value">{{ clientes_ativos }}</p>
+                <span class="stat-change positive">Clientes cadastrados</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Ordens Atrasadas</h3>
+                <p class="stat-value">{{ ordens_atrasadas }}</p>
+                <span class="stat-change {% if ordens_atrasadas > 0 %}negative{% endif %}">
+                    {% if ordens_atrasadas > 0 %}Atenção necessária{% else %}Tudo em dia{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Recent Activity -->
+    <div class="dashboard-grid">
+        <div class="card chart-card">
+            <div class="card-header">
+                <h3>Faturamento dos Últimos 6 Meses</h3>
+                <span class="chart-total">Total: R$ {% widthratio faturamento_meses|length 1 1 as total %}{{ faturamento_meses|length|floatformat:2 }}</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <div class="chart-bars">
+                        {% for mes_data in faturamento_meses %}
+                        {% widthratio mes_data.valor 50000 100 as altura %}
+                        <div class="chart-bar" data-value="{{ mes_data.valor }}" style="--bar-height: {{ altura }}%">
+                            <div class="bar-fill {% if forloop.last %}active{% endif %}" data-tooltip="R$ {{ mes_data.valor|floatformat:2 }}"></div>
+                            <span class="bar-label">{{ mes_data.mes }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Ordens Recentes</h3>
+            </div>
+            <div class="card-body">
+                <div class="recent-orders">
+                    {% for ordem in ordens_recentes %}
+                    <div class="order-item">
+                        <div class="order-info">
+                            <p class="order-title">OS #{{ ordem.numero_os }} - {{ ordem.descricao_problema|truncatewords:5 }}</p>
+                            <p class="order-client">{{ ordem.cliente.nome }}</p>
+                        </div>
+                        <span class="badge-status {{ ordem.status }}">
+                            {% if ordem.status == 'em_andamento' %}Em Andamento
+                            {% elif ordem.status == 'aguardando_pecas' %}Aguardando Peças
+                            {% elif ordem.status == 'concluida' %}Concluída
+                            {% elif ordem.status == 'aguardando' %}Aguardando Aprovação
+                            {% else %}{{ ordem.get_status_display }}{% endif %}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="placeholder-text">Nenhuma ordem de serviço recente</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

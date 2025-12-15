@@ -1,0 +1,188 @@
+{% extends 'oficina/base.html' %}
+
+{% block title %}{{ titulo }} - MecanoSync{% endblock %}
+
+{% block content %}
+<div class="page active">
+    <div class="page-header">
+        <h1>{{ titulo }}</h1>
+        <a href="{% url 'ordens_lista' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-grid">
+                    {% for field in form %}
+                    <div class="form-group {% if field.name in 'descricao_problema,observacoes' %}full-width{% endif %}">
+                        <label for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if field.field.required %} *{% endif %}
+                        </label>
+                        
+                        {% if field.name == "veiculo" %}
+                        <div style="display: flex; gap: 0.5rem; align-items: start;">
+                            {{ field }}
+                            <button type="button" id="add-veiculo-btn" class="btn btn-success" style="padding: 0.65rem 1rem; white-space: nowrap;" title="Adicionar novo veículo">
+                                <i class="fas fa-plus"></i> Novo
+                            </button>
+                        </div>
+                        <small id="veiculo-helper" style="color: #666; font-size: 0.875rem; display: none; margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> Selecione um cliente primeiro para ver os veículos
+                        </small>
+                        {% else %}
+                        {{ field }}
+                        {% endif %}
+                        
+                        {% if field.errors %}
+                            <span class="error-message">{{ field.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <a href="{% url 'ordens_lista' %}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-message {
+    color: var(--danger-color);
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clienteSelect = document.getElementById('id_cliente');
+    const veiculoSelect = document.getElementById('id_veiculo');
+    const veiculoHelper = document.getElementById('veiculo-helper');
+    const addVeiculoBtn = document.getElementById('add-veiculo-btn');
+    
+    // Atualizar veículos quando cliente mudar
+    if (clienteSelect && veiculoSelect) {
+        clienteSelect.addEventListener('change', function() {
+            const clienteId = this.value;
+            
+            if (!clienteId) {
+                veiculoSelect.innerHTML = '<option value="">---------</option>';
+                veiculoHelper.style.display = 'block';
+                return;
+            }
+            
+            veiculoHelper.style.display = 'none';
+            
+            // Buscar veículos do cliente
+            fetch(`/api/veiculos-cliente/?cliente_id=${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    veiculoSelect.innerHTML = '<option value="">---------</option>';
+                    
+                    if (data.veiculos && data.veiculos.length > 0) {
+                        data.veiculos.forEach(veiculo => {
+                            const option = document.createElement('option');
+                            option.value = veiculo.id;
+                            option.textContent = `${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+                            veiculoSelect.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Nenhum veículo cadastrado para este cliente';
+                        veiculoSelect.appendChild(option);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar veículos:', error);
+                });
+        });
+        
+        // Mostrar helper se não tiver cliente selecionado
+        if (!clienteSelect.value) {
+            veiculoHelper.style.display = 'block';
+        }
+    }
+    
+    // Botão adicionar veículo
+    if (addVeiculoBtn) {
+        addVeiculoBtn.addEventListener('click', function() {
+            const clienteId = clienteSelect ? clienteSelect.value : null;
+            
+            if (!clienteId) {
+                alert('Por favor, selecione um cliente primeiro.');
+                return;
+            }
+            
+            // Abrir página de novo veículo em nova aba
+            const marca = prompt('Marca do veículo:');
+            if (!marca) return;
+            
+            const modelo = prompt('Modelo do veículo:');
+            if (!modelo) return;
+            
+            const ano = prompt('Ano do veículo:');
+            if (!ano) return;
+            
+            const placa = prompt('Placa do veículo:');
+            if (!placa) return;
+            
+            // Criar veículo via formulário simples
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/api/criar-veiculo-rapido/`;
+            form.style.display = 'none';
+            
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            form.innerHTML = `
+                <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                <input type="hidden" name="cliente" value="${clienteId}">
+                <input type="hidden" name="marca" value="${marca}">
+                <input type="hidden" name="modelo" value="${modelo}">
+                <input type="hidden" name="ano" value="${ano}">
+                <input type="hidden" name="placa" value="${placa}">
+            `;
+            
+            document.body.appendChild(form);
+            
+            // Enviar via AJAX
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Veículo cadastrado com sucesso!');
+                    // Recarregar veículos
+                    clienteSelect.dispatchEvent(new Event('change'));
+                } else {
+                    alert('Erro ao cadastrar veículo: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao cadastrar veículo. Tente novamente.');
+            })
+            .finally(() => {
+                document.body.removeChild(form);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

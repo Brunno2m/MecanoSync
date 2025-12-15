@@ -1,0 +1,365 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excluir Oficina - MecanoSync Admin</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Admin -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="{% static 'img/logo1.png' %}" alt="MecanoSync Logo" class="logo-image">
+            <h2>MecanoSync Admin</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="{% url 'admin_dashboard' %}" class="nav-item">
+                <i class="fas fa-store"></i>
+                <span>Gerenciar Oficinas</span>
+            </a>
+            <a href="/admin/" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Admin Django</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <form method="post" action="{% url 'logout' %}" style="margin: 0; display: block;">
+                {% csrf_token %}
+                <button type="submit" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; color: inherit; font-size: inherit; font-family: inherit;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 style="margin-left: 1rem;">Excluir Oficina</h2>
+            </div>
+            <div class="header-right">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.username|title }}</span>
+                        <span class="user-role">Superusuário</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+                <button class="close-alert">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="page active" style="padding: 2rem;">
+            <div class="page-header" style="margin-bottom: 2rem;">
+                <h1><i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i> Confirmar Exclusão</h1>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+            </div>
+
+            <div class="excluir-container">
+                <div class="card-danger">
+                    <div class="warning-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    
+                    <h2>Tem certeza que deseja excluir esta oficina?</h2>
+                    
+                    <div class="oficina-info">
+                        <h3>{{ oficina.nome }}</h3>
+                        <p><strong>CNPJ:</strong> {{ oficina.cnpj }}</p>
+                        <p><strong>Proprietário:</strong> {{ oficina.proprietario.username }}</p>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>ATENÇÃO: Esta ação não pode ser desfeita!</strong>
+                            <p style="margin-top: 0.5rem;">Ao excluir esta oficina, os seguintes dados serão permanentemente removidos:</p>
+                        </div>
+                    </div>
+
+                    <div class="dados-excluir">
+                        <div class="dado-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <strong>{{ total_clientes }}</strong>
+                                <span>Cliente{{ total_clientes|pluralize:"s" }}</span>
+                            </div>
+                        </div>
+                        <div class="dado-item">
+                            <i class="fas fa-car"></i>
+                            <div>
+                                <strong>{{ total_veiculos }}</strong>
+                                <span>Veículo{{ total_veiculos|pluralize:"s" }}</span>
+                            </div>
+                        </div>
+                        <div class="dado-item">
+                            <i class="fas fa-clipboard-list"></i>
+                            <div>
+                                <strong>{{ total_ordens }}</strong>
+                                <span>Ordem{{ total_ordens|pluralize:"ns" }} de Serviço</span>
+                            </div>
+                        </div>
+                        <div class="dado-item">
+                            <i class="fas fa-user-slash"></i>
+                            <div>
+                                <strong>1</strong>
+                                <span>Usuário Proprietário</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" id="form-excluir">
+                        {% csrf_token %}
+                        
+                        <div class="form-group" style="margin-top: 2rem; margin-bottom: 2rem;">
+                            <label style="display: flex; align-items: center; gap: 0.75rem; font-weight: 600; color: #721c24;">
+                                <input type="checkbox" id="confirmar" required style="width: 20px; height: 20px; cursor: pointer;">
+                                <span>Entendo que esta ação é irreversível e todos os dados serão perdidos</span>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger" id="btn-excluir" disabled>
+                                <i class="fas fa-trash-alt"></i>
+                                Excluir Oficina Permanentemente
+                            </button>
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    <script>
+        // Habilitar botão de excluir apenas quando checkbox estiver marcado
+        const checkbox = document.getElementById('confirmar');
+        const btnExcluir = document.getElementById('btn-excluir');
+
+        checkbox.addEventListener('change', function() {
+            btnExcluir.disabled = !this.checked;
+        });
+
+        // Confirmação adicional antes de enviar
+        document.getElementById('form-excluir').addEventListener('submit', function(e) {
+            if (!confirm('ÚLTIMA CONFIRMAÇÃO: Você tem certeza absoluta que deseja excluir esta oficina e todos os seus dados?')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Fechar alertas
+        document.querySelectorAll('.close-alert').forEach(button => {
+            button.addEventListener('click', function() {
+                this.parentElement.remove();
+            });
+        });
+    </script>
+
+    <style>
+        .excluir-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card-danger {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 20px rgba(220, 53, 69, 0.15);
+            border: 2px solid #dc3545;
+        }
+
+        .warning-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        .warning-icon i {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+        }
+
+        .card-danger h2 {
+            text-align: center;
+            color: #721c24;
+            font-size: 1.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .oficina-info {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .oficina-info h3 {
+            color: #721c24;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .oficina-info p {
+            color: #721c24;
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .alert-danger i {
+            font-size: 1.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .alert-danger strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dados-excluir {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .dado-item {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .dado-item i {
+            font-size: 2rem;
+            color: #856404;
+        }
+
+        .dado-item strong {
+            font-size: 2rem;
+            color: #856404;
+            display: block;
+        }
+
+        .dado-item span {
+            color: #856404;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f8d7da;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:not(:disabled):hover {
+            background: linear-gradient(135deg, #c82333, #bd2130);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-group label {
+            cursor: pointer;
+            user-select: none;
+            padding: 1rem;
+            background: #fff;
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+        }
+
+        .form-group label:hover {
+            background: #f8d7da;
+        }
+    </style>
+</body>
+</html>

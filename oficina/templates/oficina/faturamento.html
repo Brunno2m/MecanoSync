@@ -1,0 +1,267 @@
+{% extends 'oficina/base.html' %}
+
+{% block title %}Faturamento - MecanoSync{% endblock %}
+
+{% block content %}
+<div class="page active" id="faturamento">
+    <div class="page-header">
+        <h1>Faturamento</h1>
+        <div class="date-filter">
+            <form method="get">
+                <input type="date" name="data_inicio" class="input" value="{{ request.GET.data_inicio }}">
+                <span>até</span>
+                <input type="date" name="data_fim" class="input" value="{{ request.GET.data_fim }}">
+                <button type="submit" class="btn btn-secondary">Filtrar</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Receita Total</h3>
+                <p class="stat-value">R$ {{ receita_total|floatformat:2 }}</p>
+                <span class="stat-change positive">Período selecionado</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Ordens Finalizadas</h3>
+                <p class="stat-value">{{ ordens_finalizadas }}</p>
+                <span class="stat-change positive">Total</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Contas a Receber</h3>
+                <p class="stat-value">R$ {{ contas_receber|floatformat:2 }}</p>
+                <span class="stat-change">Pendentes</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Ticket Médio</h3>
+                <p class="stat-value">R$ {{ ticket_medio|floatformat:2 }}</p>
+                <span class="stat-change positive">Por ordem</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Transações Recentes</h3>
+        </div>
+        <div class="card-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>OS</th>
+                        <th>Cliente</th>
+                        <th>Descrição</th>
+                        <th>Método</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pagamento in pagamentos %}
+                    <tr>
+                        <td>{{ pagamento.data_pagamento|date:"d/m/Y" }}</td>
+                        <td>#{{ pagamento.ordem.numero_os }}</td>
+                        <td>{{ pagamento.ordem.cliente.nome }}</td>
+                        <td>{{ pagamento.ordem.descricao_problema|truncatewords:5 }}</td>
+                        <td>
+                            <select class="metodo-select" data-pagamento-id="{{ pagamento.id }}" onchange="alterarMetodo(this)" {% if pagamento.status == 'pago' %}disabled{% endif %}>
+                                <option value="dinheiro" {% if pagamento.metodo == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                                <option value="cartao_credito" {% if pagamento.metodo == 'cartao_credito' %}selected{% endif %}>Cartão de Crédito</option>
+                                <option value="cartao_debito" {% if pagamento.metodo == 'cartao_debito' %}selected{% endif %}>Cartão de Débito</option>
+                                <option value="pix" {% if pagamento.metodo == 'pix' %}selected{% endif %}>PIX</option>
+                                <option value="transferencia" {% if pagamento.metodo == 'transferencia' %}selected{% endif %}>Transferência</option>
+                                <option value="boleto" {% if pagamento.metodo == 'boleto' %}selected{% endif %}>Boleto</option>
+                            </select>
+                        </td>
+                        <td>R$ {{ pagamento.valor|floatformat:2 }}</td>
+                        <td>
+                            {% if pagamento.status == 'pendente' %}
+                            <select class="status-payment-select" data-pagamento-id="{{ pagamento.id }}" onchange="alterarStatusPagamento(this)">
+                                <option value="pendente" selected>Pendente</option>
+                                <option value="pago">Pago</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                            {% else %}
+                            <span class="badge-status {{ pagamento.status }}">
+                                {{ pagamento.get_status_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pagamento.status == 'pendente' %}
+                            <button type="button" onclick="marcarComoPago({{ pagamento.id }})" class="btn-icon" title="Marcar como Pago">
+                                <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center;">Nenhum pagamento encontrado</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function marcarComoPago(pagamentoId) {
+    if (confirm('Confirmar que o pagamento foi recebido?')) {
+        alterarStatusPagamentoAPI(pagamentoId, 'pago');
+    }
+}
+
+function alterarStatusPagamento(selectElement) {
+    const pagamentoId = selectElement.getAttribute('data-pagamento-id');
+    const novoStatus = selectElement.value;
+    const originalStatus = selectElement.getAttribute('data-original-status') || 'pendente';
+    
+    selectElement.setAttribute('data-original-status', originalStatus);
+    
+    if (novoStatus === 'pago') {
+        if (!confirm('Confirmar que o pagamento foi recebido?')) {
+            selectElement.value = originalStatus;
+            return;
+        }
+    }
+    
+    alterarStatusPagamentoAPI(pagamentoId, novoStatus, selectElement);
+}
+
+function alterarStatusPagamentoAPI(pagamentoId, novoStatus, selectElement = null) {
+    fetch(`/api/alterar-status-pagamento/${pagamentoId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `status=${novoStatus}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erro ao alterar status: ' + data.error);
+            if (selectElement) {
+                selectElement.value = selectElement.getAttribute('data-original-status');
+            }
+        }
+    })
+    .catch(error => {
+        alert('Erro ao alterar status');
+        if (selectElement) {
+            selectElement.value = selectElement.getAttribute('data-original-status');
+        }
+    });
+}
+
+function alterarMetodo(selectElement) {
+    const pagamentoId = selectElement.getAttribute('data-pagamento-id');
+    const novoMetodo = selectElement.value;
+    const originalMetodo = selectElement.getAttribute('data-original-metodo') || selectElement.value;
+    
+    selectElement.setAttribute('data-original-metodo', originalMetodo);
+    
+    fetch(`/api/alterar-metodo-pagamento/${pagamentoId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `metodo=${novoMetodo}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            selectElement.setAttribute('data-original-metodo', novoMetodo);
+            selectElement.style.borderColor = '#27ae60';
+            setTimeout(() => {
+                selectElement.style.borderColor = '';
+            }, 1000);
+        } else {
+            alert('Erro ao alterar método: ' + data.error);
+            selectElement.value = originalMetodo;
+        }
+    })
+    .catch(error => {
+        alert('Erro ao alterar método');
+        selectElement.value = originalMetodo;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+.metodo-select, .status-payment-select {
+    padding: 0.4rem 0.8rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 180px;
+}
+
+.metodo-select:hover, .status-payment-select:hover {
+    border-color: #3498db;
+}
+
+.metodo-select:focus, .status-payment-select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.metodo-select:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.status-payment-select {
+    max-width: 120px;
+}
+</style>
+
+{% endblock %}

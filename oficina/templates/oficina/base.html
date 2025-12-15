@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MecanoSync - Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="{% static 'img/logo1.png' %}" alt="MecanoSync Logo" class="logo-image">
+            <h2>MecanoSync</h2>
+        </div>
+        <nav class="nav-menu">
+            {% if user.is_superuser %}
+            <!-- Menu do Superusuário -->
+            <a href="{% url 'admin_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-store"></i>
+                <span>Gerenciar Oficinas</span>
+            </a>
+            <a href="/admin/" class="nav-item">
+                <i class="fas fa-cogs"></i>
+                <span>Admin Django</span>
+            </a>
+            {% else %}
+            <!-- Menu da Oficina -->
+            <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            {% if oficina.modulo_clientes %}
+            <a href="{% url 'clientes_lista' %}" class="nav-item {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </a>
+            {% endif %}
+            {% if oficina.modulo_ordens %}
+            <a href="{% url 'ordens_lista' %}" class="nav-item {% if 'ordem' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Ordens de Serviço</span>
+            </a>
+            {% endif %}
+            {% if oficina.modulo_faturamento %}
+            <a href="{% url 'faturamento' %}" class="nav-item {% if request.resolver_match.url_name == 'faturamento' %}active{% endif %}">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Faturamento</span>
+            </a>
+            {% endif %}
+            {% if oficina.modulo_estoque %}
+            <a href="{% url 'estoque' %}" class="nav-item {% if request.resolver_match.url_name == 'estoque' %}active{% endif %}">
+                <i class="fas fa-box"></i>
+                <span>Estoque</span>
+            </a>
+            {% endif %}
+            {% if oficina.modulo_relatorios %}
+            <a href="{% url 'relatorios' %}" class="nav-item {% if request.resolver_match.url_name == 'relatorios' %}active{% endif %}">
+                <i class="fas fa-file-alt"></i>
+                <span>Relatórios</span>
+            </a>
+            {% endif %}
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            <a href="#" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Configurações</span>
+            </a>
+            <a href="/admin/" class="nav-item">
+                <i class="fas fa-user-shield"></i>
+                <span>Admin</span>
+            </a>
+            <form method="post" action="{% url 'logout' %}" style="margin: 0; display: block;">
+                {% csrf_token %}
+                <button type="submit" class="nav-item" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; color: inherit; font-size: inherit; font-family: inherit;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-logo">
+                    <img src="{% static 'img/logo1.png' %}" alt="MecanoSync Logo">
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Buscar...">
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ user.username|title }}</span>
+                        <span class="user-role">{% if user.is_superuser %}Administrador{% else %}Gerente{% endif %}</span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="margin-left: 0.5rem; font-size: 0.75rem;"></i>
+                    
+                    <!-- Dropdown Menu -->
+                    <div class="user-dropdown" id="userDropdown">
+                        {% if not user.is_superuser %}
+                        <a href="{% url 'perfil' %}" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            Meu Perfil
+                        </a>
+                        <a href="{% url 'alterar_senha' %}" class="dropdown-item">
+                            <i class="fas fa-key"></i>
+                            Alterar Senha
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        {% endif %}
+                        <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sair
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+                <button class="close-alert">&times;</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Toggle user dropdown menu
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Fechar dropdown ao clicar fora
+        document.addEventListener('click', function(event) {
+            const userProfile = document.querySelector('.user-profile');
+            const dropdown = document.getElementById('userDropdown');
+            
+            if (!userProfile.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Fechar alertas
+        document.querySelectorAll('.close-alert').forEach(button => {
+            button.addEventListener('click', function() {
+                this.parentElement.remove();
+            });
+        });
+    </script>
+
+    <style>
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .user-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+
+        .dropdown-item i {
+            width: 18px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 0.5rem 0;
+        }
+    </style>
+    
+    <!-- Scripts -->
+    <script src="{% static 'js/masks.js' %}"></script>
+</body>
+</html>
